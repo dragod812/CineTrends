@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">CineTrends</string>
+    <string name="error_message">Unable to Connect to Internet</string>
+</resources>
