@@ -28,7 +28,10 @@ import java.util.Scanner;
 
 public class NetworkUtils {
 
-    final static String MOVIEDB_API_BASEURL = "https://api.themoviedb.org/3/discover/movie";
+    final static String MOVIEDB_API_BASEURL = "https://api.themoviedb.org/3";
+    final static String DISCOVER_ACTION = "/discover";
+    final static String SEARCH_ACTION = "/search";
+    final static String MOVIE_SUFFIX = "/movie";
 
 
     final static String PARAM_SORT = "sort_by";
@@ -39,8 +42,9 @@ public class NetworkUtils {
 
     final static String PARAM_PAGE = "page";
 
-    public static URL buildMovieAPIUrl(int page) {
-        Uri builtUri = Uri.parse(MOVIEDB_API_BASEURL).buildUpon().appendQueryParameter(PARAM_SORT, sortBy).appendQueryParameter(PARAM_APIKEY, apiKey).appendQueryParameter(PARAM_PAGE, Integer.toString(page)).build();
+    final static String PARAM_SEARCH = "query";
+
+    private static URL buildURL(Uri builtUri){
         URL url = null;
         try{
             url = new URL(builtUri.toString());
@@ -50,6 +54,16 @@ public class NetworkUtils {
         return url;
     }
 
+
+    public static URL buildTrendingMoviesURL(int page) {
+        Uri builtUri = Uri.parse(MOVIEDB_API_BASEURL + DISCOVER_ACTION + MOVIE_SUFFIX).buildUpon().appendQueryParameter(PARAM_SORT, sortBy).appendQueryParameter(PARAM_APIKEY, apiKey).appendQueryParameter(PARAM_PAGE, Integer.toString(page)).build();
+        return buildURL(builtUri);
+    }
+
+    public static URL buildSearchMoviesURL(String query, int page) {
+        Uri builtUri = Uri.parse(MOVIEDB_API_BASEURL + SEARCH_ACTION + MOVIE_SUFFIX).buildUpon().appendQueryParameter(PARAM_SEARCH, query).appendQueryParameter(PARAM_PAGE, Integer.toString(page)).appendQueryParameter(PARAM_APIKEY, apiKey).build();
+        return buildURL(builtUri);
+    }
 
 
     /**

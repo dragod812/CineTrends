@@ -4,21 +4,23 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.View;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import org.json.JSONArray;
 import padhee.apps.cinetrends.Utilities.Parsers.AsyncParser;
-import padhee.apps.cinetrends.Utilities.Parsers.JSONArrayAsyncParser;
 import padhee.apps.cinetrends.Utilities.AsyncQuery;
 import padhee.apps.cinetrends.Utilities.BitmapCache;
 import padhee.apps.cinetrends.Utilities.NetworkUtils;
 import padhee.apps.cinetrends.Utilities.PaginationScrollListener;
+import padhee.apps.cinetrends.Utilities.Parsers.MoviePageAsyncParser;
+import padhee.apps.cinetrends.pojo.MoviePage;
 
 import java.net.URL;
 
-public class MainActivity extends AppCompatActivity implements OnQueryReady<JSONArray> {
-    private ProgressBar mLoadingIndicator;
+public class MainActivity extends AppCompatActivity implements OnQueryReady<MoviePage> {
+
+    private static  final String TAG = MainActivity.class.getSimpleName();
 
     private TextView mErrorMessageDisplay;
 
@@ -28,7 +30,9 @@ public class MainActivity extends AppCompatActivity implements OnQueryReady<JSON
 
     private int currentPage;
 
-    private int totalPageCount = -1;
+    private int totalPageCount;
+
+    boolean isLoading;
 
     MainActivity(){
     }
@@ -38,22 +42,18 @@ public class MainActivity extends AppCompatActivity implements OnQueryReady<JSON
         mErrorMessageDisplay.setVisibility(View.VISIBLE);
     }
 
-    private void showLoading(){
-        mMovieList.setVisibility(View.INVISIBLE);
-        mLoadingIndicator.setVisibility(View.VISIBLE);
-    }
-
-    private void doneLoading(){
-        mMovieList.setVisibility(View.VISIBLE);
-        mLoadingIndicator.setVisibility(View.INVISIBLE);
-    }
-
-    public void onQueryReady(JSONArray jsonMoviesArray) {
-        if(jsonMoviesArray == null){
+    public void onQueryReady(MoviePage page) {
+        if(page == null){
+            mAdapter.removeLoadingFooter();
             showErrorMessage();
             return;
         }
-        mAdapter.addMovieArray(jsonMoviesArray);
+        //if its the first page of the result get the totalPageCount.
+        if(page.getPageNumber() == 1)
+            totalPageCount = page.getTotalPageCount();
+        Log.d(TAG, "Total Number of Pages: " + page.getTotalPageCount() + ", Current Page: " + page.getPageNumber());
+        isLoading = false;
+        mAdapter.addMoviePage(page);
     }
 
 
@@ -64,10 +64,10 @@ public class MainActivity extends AppCompatActivity implements OnQueryReady<JSON
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
-        mLoadingIndicator = (ProgressBar) findViewById(R.id.pb_loading_indicator);
         mErrorMessageDisplay = (TextView) findViewById(R.id.tv_error_message_display) ;
-        currentPage = 1;
+        currentPage = 0;
+        totalPageCount = -1;
+        isLoading = false;
 
 
         mMovieList = (RecyclerView) findViewById(R.id.rv_movies);
@@ -80,8 +80,10 @@ public class MainActivity extends AppCompatActivity implements OnQueryReady<JSON
         mMovieList.addOnScrollListener(new PaginationScrollListener(layoutManager) {
             @Override
             protected void loadMoreItems() {
-                currentPage += 1;
-                loadPage();
+                if(currentPage < totalPageCount){
+
+                    loadPage();
+                }
             }
 
             @Override
@@ -96,7 +98,7 @@ public class MainActivity extends AppCompatActivity implements OnQueryReady<JSON
 
             @Override
             public boolean isLoading() {
-                return false;
+                return isLoading;
             }
         });
 
@@ -105,8 +107,10 @@ public class MainActivity extends AppCompatActivity implements OnQueryReady<JSON
     }
 
     private void loadPage(){
-        URL trendingURL = NetworkUtils.buildMovieAPIUrl(currentPage);
-        AsyncParser<JSONArray> parser = new JSONArrayAsyncParser();
-        new AsyncQuery<JSONArray>(this, parser).execute(trendingURL);
+        currentPage += 1;
+        URL trendingURL = NetworkUtils.buildSearchMoviesURL("sick", currentPage);
+        AsyncParser<MoviePage> parser = new MoviePageAsyncParser();
+        isLoading = true;
+        new AsyncQuery<MoviePage>(this, parser).execute(trendingURL);
     }
 }

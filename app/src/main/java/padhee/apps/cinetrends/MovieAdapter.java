@@ -15,6 +15,7 @@ import padhee.apps.cinetrends.Utilities.Parsers.AsyncParser;
 import padhee.apps.cinetrends.Utilities.Parsers.BitmapAsyncParser;
 import padhee.apps.cinetrends.Utilities.AsyncQuery;
 import padhee.apps.cinetrends.Utilities.BitmapCache;
+import padhee.apps.cinetrends.pojo.MoviePage;
 
 import java.net.URL;
 
@@ -57,7 +58,7 @@ public class MovieAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         if(getItemViewType(position) == MOVIE){
             MovieViewHolder mvh = (MovieViewHolder) holder;
             try{
-                Log.d(TAG, "#" + movieArray.getJSONObject(position).toString());
+                Log.d(TAG, "#" + position + movieArray.getJSONObject(position).toString());
                 JSONObject details = movieArray.getJSONObject(position);
                 String title = details.getString("title");
                 String posterPath = details.getString("poster_path");
@@ -90,22 +91,24 @@ public class MovieAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         notifyItemInserted(movieArray.length()-1);
     }
 
-    public void addMovieArray(JSONArray jsonMoviesArray){
+    public void addMoviePage(MoviePage page){
         removeLoadingFooter();
-        for(int i = 0;i<jsonMoviesArray.length();i++){
+        for(int i = 0;i<page.getMovieCount();i++){
             try{
-                addMovie(jsonMoviesArray.getJSONObject(i));
+                addMovie(page.getMovie(i));
             }
             catch (JSONException e){
                 e.printStackTrace();
             }
         }
-        addLoadingFooter();
+        if(page.getPageNumber() < page.getTotalPageCount())
+            addLoadingFooter();
     }
 
     public void addLoadingFooter() {
         isLoadingAdded = true;
         addMovie(new JSONObject());
+        Log.d(TAG, "LoadingFooterAdded");
     }
 
     public void removeLoadingFooter() {
@@ -121,6 +124,7 @@ public class MovieAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         } catch (JSONException e){
             e.printStackTrace();
         }
+        Log.d(TAG, "LoadingFooterRemoved");
 
     }
 
@@ -136,8 +140,13 @@ public class MovieAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         String posterPath;
 
         public void onQueryReady(Bitmap queryResult ){
-            ivPoster.setImageBitmap(queryResult);
-            bitmapCache.setBitmap(posterPath, queryResult);
+            if(queryResult != null){
+                ivPoster.setImageBitmap(queryResult);
+                bitmapCache.setBitmap(posterPath, queryResult);
+            }
+            else{
+                ivPoster.setImageResource(R.drawable.placeholder);
+            }
         }
 
         public MovieViewHolder(View itemView, BitmapCache bitmapCache) {
@@ -154,19 +163,24 @@ public class MovieAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
         void bind(String movieTitle, String posterPath) {
             listMovieItemView.setText(movieTitle);
-            try{
-                Bitmap img = bitmapCache.getBitmap(posterPath);
-                if (img == null){
-                    URL posterURL = new URL(baseImageUrl + posterPath);
-                    this.posterPath = posterPath;
-                    AsyncParser<Bitmap> parser = new BitmapAsyncParser();
-                    new AsyncQuery<Bitmap>(this, parser).execute(posterURL);
+            if(posterPath == null){
+                ivPoster.setImageResource(R.drawable.placeholder);
+            }
+            else{
+                try{
+                    Bitmap img = bitmapCache.getBitmap(posterPath);
+                    if (img == null){
+                        URL posterURL = new URL(baseImageUrl + posterPath);
+                        this.posterPath = posterPath;
+                        AsyncParser<Bitmap> parser = new BitmapAsyncParser();
+                        new AsyncQuery<Bitmap>(this, parser).execute(posterURL);
+                    }
+                    else{
+                        ivPoster.setImageBitmap(img);
+                    }
+                } catch (Exception e){
+                    e.printStackTrace();
                 }
-                else{
-                    ivPoster.setImageBitmap(img);
-                }
-            } catch (Exception e){
-                e.printStackTrace();
             }
         }
     }
