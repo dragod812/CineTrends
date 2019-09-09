@@ -64,7 +64,10 @@ public class MainActivity extends AppCompatActivity implements OnQueryReady<Movi
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mErrorMessageDisplay = (TextView) findViewById(R.id.tv_error_message_display) ;
+        ViewModelProvider provider = ViewModelProviders.of(this);
+        final MoviePageViewModel currentPageViewModel = provider.get(MoviePageViewModel.class);
+
+        mErrorMessageDisplay = (TextView) findViewById(R.id.tv_error_message_display);
         currentPage = 0;
         totalPageCount = -1;
         isLoading = false;
@@ -81,8 +84,10 @@ public class MainActivity extends AppCompatActivity implements OnQueryReady<Movi
             @Override
             protected void loadMoreItems() {
                 if(currentPage < totalPageCount){
-
-                    loadPage();
+//                    loadPage();
+                    currentPageViewModel.loadNextPage(page -> {
+                        mAdapter.addMoviePage(page);
+                    });
                 }
             }
 
@@ -108,7 +113,7 @@ public class MainActivity extends AppCompatActivity implements OnQueryReady<Movi
 
     private void loadPage(){
         currentPage += 1;
-        URL trendingURL = NetworkUtils.buildSearchMoviesURL("sick", currentPage);
+        URL trendingURL = NetworkUtils.buildTrendingMoviesURL(currentPage);
         AsyncParser<MoviePage> parser = new MoviePageAsyncParser();
         isLoading = true;
         new AsyncQuery<MoviePage>(this, parser).execute(trendingURL);
